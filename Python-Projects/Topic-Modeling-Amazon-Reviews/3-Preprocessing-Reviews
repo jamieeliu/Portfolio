@@ -1,0 +1,2717 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "1.27_preprocessing_text_tmtoolkit.ipynb",
+      "provenance": [],
+      "collapsed_sections": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "miV9m6xTDMDy"
+      },
+      "source": [
+        "\n",
+        "# Importing packages, setting working directory, and loading file"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 1000
+        },
+        "id": "n_ADaKozIqXQ",
+        "outputId": "3ea82d7d-6554-4a8e-b647-8278599499d0"
+      },
+      "source": [
+        "try:\n",
+        "  import tmtoolkit\n",
+        "except:\n",
+        "  !pip install tmtoolkit\n",
+        "  import tmtoolkit\n",
+        "\n",
+        "import nltk\n",
+        "import random\n",
+        "import numpy as np\n",
+        "from tmtoolkit.corpus import Corpus\n",
+        "import json\n",
+        "\n",
+        "random.seed(20191120) #to make sampling reproducible\n",
+        "np.set_printoptions(precision=5)\n",
+        "\n",
+        "nltk.download('stopwords')\n",
+        "nltk.download('punkt')\n",
+        "nltk.download('averaged_perceptron_tagger')\n",
+        "nltk.download('wordnet')"
+      ],
+      "execution_count": 1,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Collecting tmtoolkit\n",
+            "\u001b[?25l  Downloading https://files.pythonhosted.org/packages/98/97/d58e7fdbf44c55af721d9c57ce71d02b193f1b305c349f7e1803ca0b397a/tmtoolkit-0.10.0-py3-none-any.whl (7.1MB)\n",
+            "\u001b[K     |████████████████████████████████| 7.2MB 3.9MB/s \n",
+            "\u001b[?25hCollecting globre<0.2,>=0.1.5\n",
+            "  Downloading https://files.pythonhosted.org/packages/5a/ce/a9e2f3317a458f8c591a1f95d4061d4e241f529ba678292acdcf2d804783/globre-0.1.5.tar.gz\n",
+            "Requirement already satisfied: pandas<1.2,>=1.1.0 in /usr/local/lib/python3.6/dist-packages (from tmtoolkit) (1.1.5)\n",
+            "Collecting scipy<1.6,>=1.5.0\n",
+            "\u001b[?25l  Downloading https://files.pythonhosted.org/packages/c8/89/63171228d5ced148f5ced50305c89e8576ffc695a90b58fe5bb602b910c2/scipy-1.5.4-cp36-cp36m-manylinux1_x86_64.whl (25.9MB)\n",
+            "\u001b[K     |████████████████████████████████| 25.9MB 46.9MB/s \n",
+            "\u001b[?25hCollecting xlrd>=1.2.0\n",
+            "\u001b[?25l  Downloading https://files.pythonhosted.org/packages/a6/0c/c2a72d51fe56e08a08acc85d13013558a2d793028ae7385448a6ccdfae64/xlrd-2.0.1-py2.py3-none-any.whl (96kB)\n",
+            "\u001b[K     |████████████████████████████████| 102kB 8.4MB/s \n",
+            "\u001b[?25hCollecting matplotlib<3.4,>=3.3.0\n",
+            "\u001b[?25l  Downloading https://files.pythonhosted.org/packages/09/03/b7b30fa81cb687d1178e085d0f01111ceaea3bf81f9330c937fb6f6c8ca0/matplotlib-3.3.4-cp36-cp36m-manylinux1_x86_64.whl (11.5MB)\n",
+            "\u001b[K     |████████████████████████████████| 11.5MB 42.8MB/s \n",
+            "\u001b[?25hRequirement already satisfied: numpy<2,>=1.19.0 in /usr/local/lib/python3.6/dist-packages (from tmtoolkit) (1.19.5)\n",
+            "Collecting spacy<2.4,>=2.3.0\n",
+            "\u001b[?25l  Downloading https://files.pythonhosted.org/packages/e5/bf/ca7bb25edd21f1cf9d498d0023808279672a664a70585e1962617ca2740c/spacy-2.3.5-cp36-cp36m-manylinux2014_x86_64.whl (10.4MB)\n",
+            "\u001b[K     |████████████████████████████████| 10.4MB 20.4MB/s \n",
+            "\u001b[?25hRequirement already satisfied: pytz>=2017.2 in /usr/local/lib/python3.6/dist-packages (from pandas<1.2,>=1.1.0->tmtoolkit) (2018.9)\n",
+            "Requirement already satisfied: python-dateutil>=2.7.3 in /usr/local/lib/python3.6/dist-packages (from pandas<1.2,>=1.1.0->tmtoolkit) (2.8.1)\n",
+            "Requirement already satisfied: pyparsing!=2.0.4,!=2.1.2,!=2.1.6,>=2.0.3 in /usr/local/lib/python3.6/dist-packages (from matplotlib<3.4,>=3.3.0->tmtoolkit) (2.4.7)\n",
+            "Requirement already satisfied: cycler>=0.10 in /usr/local/lib/python3.6/dist-packages (from matplotlib<3.4,>=3.3.0->tmtoolkit) (0.10.0)\n",
+            "Requirement already satisfied: pillow>=6.2.0 in /usr/local/lib/python3.6/dist-packages (from matplotlib<3.4,>=3.3.0->tmtoolkit) (7.0.0)\n",
+            "Requirement already satisfied: kiwisolver>=1.0.1 in /usr/local/lib/python3.6/dist-packages (from matplotlib<3.4,>=3.3.0->tmtoolkit) (1.3.1)\n",
+            "Requirement already satisfied: tqdm<5.0.0,>=4.38.0 in /usr/local/lib/python3.6/dist-packages (from spacy<2.4,>=2.3.0->tmtoolkit) (4.41.1)\n",
+            "Requirement already satisfied: blis<0.8.0,>=0.4.0 in /usr/local/lib/python3.6/dist-packages (from spacy<2.4,>=2.3.0->tmtoolkit) (0.4.1)\n",
+            "Requirement already satisfied: cymem<2.1.0,>=2.0.2 in /usr/local/lib/python3.6/dist-packages (from spacy<2.4,>=2.3.0->tmtoolkit) (2.0.5)\n",
+            "Collecting thinc<7.5.0,>=7.4.1\n",
+            "\u001b[?25l  Downloading https://files.pythonhosted.org/packages/c0/1a/c3e4ab982214c63d743fad57c45c5e68ee49e4ea4384d27b28595a26ad26/thinc-7.4.5-cp36-cp36m-manylinux2014_x86_64.whl (1.1MB)\n",
+            "\u001b[K     |████████████████████████████████| 1.1MB 25.0MB/s \n",
+            "\u001b[?25hRequirement already satisfied: setuptools in /usr/local/lib/python3.6/dist-packages (from spacy<2.4,>=2.3.0->tmtoolkit) (53.0.0)\n",
+            "Requirement already satisfied: srsly<1.1.0,>=1.0.2 in /usr/local/lib/python3.6/dist-packages (from spacy<2.4,>=2.3.0->tmtoolkit) (1.0.5)\n",
+            "Requirement already satisfied: preshed<3.1.0,>=3.0.2 in /usr/local/lib/python3.6/dist-packages (from spacy<2.4,>=2.3.0->tmtoolkit) (3.0.5)\n",
+            "Requirement already satisfied: wasabi<1.1.0,>=0.4.0 in /usr/local/lib/python3.6/dist-packages (from spacy<2.4,>=2.3.0->tmtoolkit) (0.8.2)\n",
+            "Requirement already satisfied: murmurhash<1.1.0,>=0.28.0 in /usr/local/lib/python3.6/dist-packages (from spacy<2.4,>=2.3.0->tmtoolkit) (1.0.5)\n",
+            "Requirement already satisfied: catalogue<1.1.0,>=0.0.7 in /usr/local/lib/python3.6/dist-packages (from spacy<2.4,>=2.3.0->tmtoolkit) (1.0.0)\n",
+            "Requirement already satisfied: plac<1.2.0,>=0.9.6 in /usr/local/lib/python3.6/dist-packages (from spacy<2.4,>=2.3.0->tmtoolkit) (1.1.3)\n",
+            "Requirement already satisfied: requests<3.0.0,>=2.13.0 in /usr/local/lib/python3.6/dist-packages (from spacy<2.4,>=2.3.0->tmtoolkit) (2.23.0)\n",
+            "Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.6/dist-packages (from python-dateutil>=2.7.3->pandas<1.2,>=1.1.0->tmtoolkit) (1.15.0)\n",
+            "Requirement already satisfied: importlib-metadata>=0.20; python_version < \"3.8\" in /usr/local/lib/python3.6/dist-packages (from catalogue<1.1.0,>=0.0.7->spacy<2.4,>=2.3.0->tmtoolkit) (3.4.0)\n",
+            "Requirement already satisfied: idna<3,>=2.5 in /usr/local/lib/python3.6/dist-packages (from requests<3.0.0,>=2.13.0->spacy<2.4,>=2.3.0->tmtoolkit) (2.10)\n",
+            "Requirement already satisfied: urllib3!=1.25.0,!=1.25.1,<1.26,>=1.21.1 in /usr/local/lib/python3.6/dist-packages (from requests<3.0.0,>=2.13.0->spacy<2.4,>=2.3.0->tmtoolkit) (1.24.3)\n",
+            "Requirement already satisfied: chardet<4,>=3.0.2 in /usr/local/lib/python3.6/dist-packages (from requests<3.0.0,>=2.13.0->spacy<2.4,>=2.3.0->tmtoolkit) (3.0.4)\n",
+            "Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.6/dist-packages (from requests<3.0.0,>=2.13.0->spacy<2.4,>=2.3.0->tmtoolkit) (2020.12.5)\n",
+            "Requirement already satisfied: typing-extensions>=3.6.4; python_version < \"3.8\" in /usr/local/lib/python3.6/dist-packages (from importlib-metadata>=0.20; python_version < \"3.8\"->catalogue<1.1.0,>=0.0.7->spacy<2.4,>=2.3.0->tmtoolkit) (3.7.4.3)\n",
+            "Requirement already satisfied: zipp>=0.5 in /usr/local/lib/python3.6/dist-packages (from importlib-metadata>=0.20; python_version < \"3.8\"->catalogue<1.1.0,>=0.0.7->spacy<2.4,>=2.3.0->tmtoolkit) (3.4.0)\n",
+            "Building wheels for collected packages: globre\n",
+            "  Building wheel for globre (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Created wheel for globre: filename=globre-0.1.5-cp36-none-any.whl size=19529 sha256=62a41d83319933b75b8a8f6e3fca4ba0a7effbf1df84602eee056cddc13090a1\n",
+            "  Stored in directory: /root/.cache/pip/wheels/c4/3f/7f/be546f6d880521a8a7a1fe84cbe135fa859be63084682d3292\n",
+            "Successfully built globre\n",
+            "\u001b[31mERROR: albumentations 0.1.12 has requirement imgaug<0.2.7,>=0.2.5, but you'll have imgaug 0.2.9 which is incompatible.\u001b[0m\n",
+            "Installing collected packages: globre, scipy, xlrd, matplotlib, thinc, spacy, tmtoolkit\n",
+            "  Found existing installation: scipy 1.4.1\n",
+            "    Uninstalling scipy-1.4.1:\n",
+            "      Successfully uninstalled scipy-1.4.1\n",
+            "  Found existing installation: xlrd 1.1.0\n",
+            "    Uninstalling xlrd-1.1.0:\n",
+            "      Successfully uninstalled xlrd-1.1.0\n",
+            "  Found existing installation: matplotlib 3.2.2\n",
+            "    Uninstalling matplotlib-3.2.2:\n",
+            "      Successfully uninstalled matplotlib-3.2.2\n",
+            "  Found existing installation: thinc 7.4.0\n",
+            "    Uninstalling thinc-7.4.0:\n",
+            "      Successfully uninstalled thinc-7.4.0\n",
+            "  Found existing installation: spacy 2.2.4\n",
+            "    Uninstalling spacy-2.2.4:\n",
+            "      Successfully uninstalled spacy-2.2.4\n",
+            "Successfully installed globre-0.1.5 matplotlib-3.3.4 scipy-1.5.4 spacy-2.3.5 thinc-7.4.5 tmtoolkit-0.10.0 xlrd-2.0.1\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "application/vnd.colab-display-data+json": {
+              "pip_warning": {
+                "packages": [
+                  "matplotlib",
+                  "mpl_toolkits"
+                ]
+              }
+            }
+          },
+          "metadata": {
+            "tags": []
+          }
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[nltk_data] Downloading package stopwords to /root/nltk_data...\n",
+            "[nltk_data]   Unzipping corpora/stopwords.zip.\n",
+            "[nltk_data] Downloading package punkt to /root/nltk_data...\n",
+            "[nltk_data]   Unzipping tokenizers/punkt.zip.\n",
+            "[nltk_data] Downloading package averaged_perceptron_tagger to\n",
+            "[nltk_data]     /root/nltk_data...\n",
+            "[nltk_data]   Unzipping taggers/averaged_perceptron_tagger.zip.\n",
+            "[nltk_data] Downloading package wordnet to /root/nltk_data...\n",
+            "[nltk_data]   Unzipping corpora/wordnet.zip.\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "True"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 1
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "4KxOOhj5Ju4U"
+      },
+      "source": [
+        "#For all Steve Madden reviews\n",
+        "working_directory = '/content/drive/MyDrive/APRD6343/TopicModeling'\n",
+        "json_path = \"%s/allSMreviews.json\" % working_directory"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "hXNHwgsBtOWx"
+      },
+      "source": [
+        "#For just Steve Madden reviews with 2 or less stars\n",
+        "working_directory2 = '/content/drive/MyDrive/APRD6343/TopicModeling'\n",
+        "json_path2 = \"%s/allSM2Ratingreviews.json\" % working_directory2"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "L4jQrOm02pdX"
+      },
+      "source": [
+        "#For just Steve Madden reviews with 4 or more stars\n",
+        "working_directory3 = '/content/drive/MyDrive/APRD6343/TopicModeling'\n",
+        "json_path3 = \"%s/allSMOver3Ratingreviews.json\" % working_directory3"
+      ],
+      "execution_count": 2,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "eXzpZXWUKUML"
+      },
+      "source": [
+        "#For all Steve Madden Reviews\n",
+        "from time import sleep\n",
+        "json_file = json.load(open(json_path, 'r')) #Opening as read file and loading as json\n",
+        "\n",
+        "for a_review in json_file:\n",
+        "  the_review = json_file[a_review]\n",
+        "  #print(the_review)\n",
+        "  #sleep(5)\n",
+        "\n",
+        "#https://tmtoolkit.readthedocs.io/en/latest/text_corpora.html for more information on corpuses"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "znauxWSntUYG"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 2 or less stars\n",
+        "from time import sleep\n",
+        "json_file2 = json.load(open(json_path2, 'r'))\n",
+        "\n",
+        "for a_review in json_file2:\n",
+        "  the_review = json_file2[a_review]\n",
+        "  #print(the_review)\n",
+        "  #sleep(5)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "EUfsJBCR20Z_"
+      },
+      "source": [
+        "#For just Steve Madden reviews with 4 or more stars\n",
+        "from time import sleep\n",
+        "json_file3 = json.load(open(json_path3, 'r'))\n",
+        "\n",
+        "for a_review in json_file3:\n",
+        "  the_review = json_file3[a_review]\n",
+        "  #print(the_review)\n",
+        "  #sleep(5)"
+      ],
+      "execution_count": 3,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "h6SV-JQiDVvN"
+      },
+      "source": [
+        "# Creating corpuses"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "cmm7E7skMLQE"
+      },
+      "source": [
+        "#For all Steve Madden Reviews\n",
+        "corpus = Corpus()\n",
+        "for i, a_review in enumerate(json_file): #Iterate through JSON file, then assign index value as identifier\n",
+        "  the_review = json_file[a_review]\n",
+        "  corpus.add_doc(str(i), the_review['reviewText'])"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "PQRmYbN4tZnH"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 2 or less stars\n",
+        "corpus2 = Corpus()\n",
+        "for i, a_review in enumerate(json_file2):\n",
+        "  the_review2 = json_file2[a_review]\n",
+        "  corpus2.add_doc(str(i), the_review2['reviewText'])"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "QS6-yzhX27zz"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 4 or more stars\n",
+        "corpus3 = Corpus()\n",
+        "for i, a_review in enumerate(json_file3):\n",
+        "  the_review3 = json_file3[a_review]\n",
+        "  corpus3.add_doc(str(i), the_review3['reviewText'])"
+      ],
+      "execution_count": 4,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "l-D6ePpVNNhN",
+        "outputId": "038e4249-3c03-4cdf-cd63-8171e64571fa"
+      },
+      "source": [
+        "print(len(corpus))"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "16228\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "yD9GnmVYtipB",
+        "outputId": "2802cce3-23ea-417e-cfbc-146f5aac89ab"
+      },
+      "source": [
+        "print(len(corpus2))"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "4167\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "PhEtGQfV2-h1",
+        "outputId": "b443a0fe-77ac-429f-b72a-28045575988d"
+      },
+      "source": [
+        "print(len(corpus3))"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "12061\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "-JtzuMhZDdHX"
+      },
+      "source": [
+        "# Looking at documents"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "cvXM7n8cNU0D"
+      },
+      "source": [
+        "#corpus.doc_labels"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 122
+        },
+        "id": "EX5PeFCbMzXE",
+        "outputId": "051bfbaa-ee76-45c4-b278-1be3352f86e9"
+      },
+      "source": [
+        "corpus['91'] #Looking at one specific document"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            },
+            "text/plain": [
+              "'great shoe, 3\" heel, comfortable enough for short term wear. fabric and color is lovely, style is nice and the decorative buckle is adorable. dresses up shoe just enough to make it appropriate for fancy wear.  i wore them with my wedding dress. I found them to be a little uncomfortable wearing them a long time because the angle from heel to toe is a little steep, and the inside area above the toes is man-made pleather and that gave me a blister -I didn\\'t like that. Otherwise, they were great.'"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 16
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 71
+        },
+        "id": "4d0qvpwXtlQN",
+        "outputId": "0b67dea1-c008-417a-e9a7-d30873fe1367"
+      },
+      "source": [
+        "corpus2['91']"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            },
+            "text/plain": [
+              "'These shoes were so uncomfortable that I had to return them for a refund!  The leather (felt like faux) was very hard and stiff.  They also were not as cute as they looked in the picture.Save your time and $$$$.'"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 42
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 54
+        },
+        "id": "1HxLeLUt3ALX",
+        "outputId": "7ee1ecdf-20f6-4978-8f74-1a67f6af340d"
+      },
+      "source": [
+        "corpus3['91']"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            },
+            "text/plain": [
+              "'I bought them as a gift for my husband and he really likes them. They are a little stiff and need to be broken in but other than that they are nice.'"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 8
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "2IlH_Gp_Dhrf"
+      },
+      "source": [
+        "# Preprocessing"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "zdegsEFRN5aj",
+        "outputId": "baf6cb87-151c-4721-f940-c53abf88c1e7"
+      },
+      "source": [
+        "#https://tmtoolkit.readthedocs.io/en/latest/preprocessing.html for more information on preprocessing\n",
+        "\n",
+        "#For all Steve Madden Reviews\n",
+        "from tmtoolkit.preprocess import TMPreproc\n",
+        "\n",
+        "#Preproc is the preprocessed version of the reviews to use for topic modeling\n",
+        "\n",
+        "preproc = TMPreproc(corpus, language = 'en')\n",
+        "preproc.pos_tag() #Tagging each word in each sentence of each review with the part of speech the word is being used for\n",
+        "preproc.lemmatize() #Each word has different potential uses - gets word down to the root\n",
+        "preproc.tokens_to_lowercase()\n",
+        "preproc.remove_special_chars_in_tokens()\n",
+        "preproc.add_stopwords(['http','nt'])"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "/usr/local/lib/python3.6/dist-packages/spacy/util.py:275: UserWarning: [W031] Model 'en_core_web_sm' (2.2.5) requires spaCy v2.2 and is incompatible with the current spaCy version (2.3.5). This may lead to unexpected results or runtime errors. To resolve this, download a newer compatible model or retrain your custom model with the current spaCy version. For more details and available updates, run: python -m spacy validate\n",
+            "  warnings.warn(warn_msg)\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "<TMPreproc [16228 documents / en]>"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 38
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "zFNsggwVtwnk",
+        "outputId": "50a84d86-e579-4cb4-94c0-70d34fc43dec"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 2 or less stars\n",
+        "from tmtoolkit.preprocess import TMPreproc\n",
+        "\n",
+        "\n",
+        "preproc2 = TMPreproc(corpus2, language = 'en')\n",
+        "preproc2.pos_tag()\n",
+        "preproc2.lemmatize()\n",
+        "preproc2.tokens_to_lowercase()\n",
+        "preproc2.remove_special_chars_in_tokens()\n",
+        "preproc2.add_stopwords(['http','nt'])"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "/usr/local/lib/python3.6/dist-packages/spacy/util.py:275: UserWarning: [W031] Model 'en_core_web_sm' (2.2.5) requires spaCy v2.2 and is incompatible with the current spaCy version (2.3.5). This may lead to unexpected results or runtime errors. To resolve this, download a newer compatible model or retrain your custom model with the current spaCy version. For more details and available updates, run: python -m spacy validate\n",
+            "  warnings.warn(warn_msg)\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "<TMPreproc [2303 documents / en]>"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 43
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ufQfgod83CPO",
+        "outputId": "b21ead01-7972-47d7-be6e-c0eb43bd0f20"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 4 or more stars\n",
+        "from tmtoolkit.preprocess import TMPreproc\n",
+        "\n",
+        "\n",
+        "preproc3 = TMPreproc(corpus3, language = 'en')\n",
+        "preproc3.pos_tag()\n",
+        "preproc3.lemmatize()\n",
+        "preproc3.tokens_to_lowercase()\n",
+        "preproc3.remove_special_chars_in_tokens()\n",
+        "preproc3.add_stopwords(['http','nt'])"
+      ],
+      "execution_count": 5,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "/usr/local/lib/python3.6/dist-packages/spacy/util.py:275: UserWarning: [W031] Model 'en_core_web_sm' (2.2.5) requires spaCy v2.2 and is incompatible with the current spaCy version (2.3.5). This may lead to unexpected results or runtime errors. To resolve this, download a newer compatible model or retrain your custom model with the current spaCy version. For more details and available updates, run: python -m spacy validate\n",
+            "  warnings.warn(warn_msg)\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "<TMPreproc [12061 documents / en]>"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 5
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "_aQN0TEsOJEC",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 122
+        },
+        "outputId": "a0b0cf60-8f69-4d50-8276-9932d8826fda"
+      },
+      "source": [
+        "corpus['91']"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            },
+            "text/plain": [
+              "'great shoe, 3\" heel, comfortable enough for short term wear. fabric and color is lovely, style is nice and the decorative buckle is adorable. dresses up shoe just enough to make it appropriate for fancy wear.  i wore them with my wedding dress. I found them to be a little uncomfortable wearing them a long time because the angle from heel to toe is a little steep, and the inside area above the toes is man-made pleather and that gave me a blister -I didn\\'t like that. Otherwise, they were great.'"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 11
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 71
+        },
+        "id": "CjuhbbYct04L",
+        "outputId": "e6af7b90-4ff0-47e9-c85c-6e9cca974133"
+      },
+      "source": [
+        "corpus2['91']"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            },
+            "text/plain": [
+              "'These shoes were so uncomfortable that I had to return them for a refund!  The leather (felt like faux) was very hard and stiff.  They also were not as cute as they looked in the picture.Save your time and $$$$.'"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 44
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 54
+        },
+        "id": "intmIJHX3H0y",
+        "outputId": "69520ec6-10e4-4ec9-d8bd-48368e62870e"
+      },
+      "source": [
+        "corpus3['91']"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            },
+            "text/plain": [
+              "'I bought them as a gift for my husband and he really likes them. They are a little stiff and need to be broken in but other than that they are nice.'"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 11
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "bs9hg4ARONIF",
+        "outputId": "cef3666c-2060-45f1-c601-c29de336f74c"
+      },
+      "source": [
+        "preproc.tokens['91'] #Looking at this document, need to preprocess more to remove punctuation, stop words, and spaces"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "['great',\n",
+              " 'shoe',\n",
+              " '',\n",
+              " '3',\n",
+              " '',\n",
+              " 'heel',\n",
+              " '',\n",
+              " 'comfortable',\n",
+              " 'enough',\n",
+              " 'for',\n",
+              " 'short',\n",
+              " 'term',\n",
+              " 'wear',\n",
+              " '',\n",
+              " 'fabric',\n",
+              " 'and',\n",
+              " 'color',\n",
+              " 'be',\n",
+              " 'lovely',\n",
+              " '',\n",
+              " 'style',\n",
+              " 'be',\n",
+              " 'nice',\n",
+              " 'and',\n",
+              " 'the',\n",
+              " 'decorative',\n",
+              " 'buckle',\n",
+              " 'be',\n",
+              " 'adorable',\n",
+              " '',\n",
+              " 'dress',\n",
+              " 'up',\n",
+              " 'shoe',\n",
+              " 'just',\n",
+              " 'enough',\n",
+              " 'to',\n",
+              " 'make',\n",
+              " 'it',\n",
+              " 'appropriate',\n",
+              " 'for',\n",
+              " 'fancy',\n",
+              " 'wear',\n",
+              " '',\n",
+              " '',\n",
+              " 'i',\n",
+              " 'wear',\n",
+              " 'them',\n",
+              " 'with',\n",
+              " 'my',\n",
+              " 'wedding',\n",
+              " 'dress',\n",
+              " '',\n",
+              " 'i',\n",
+              " 'find',\n",
+              " 'them',\n",
+              " 'to',\n",
+              " 'be',\n",
+              " 'a',\n",
+              " 'little',\n",
+              " 'uncomfortable',\n",
+              " 'wear',\n",
+              " 'them',\n",
+              " 'a',\n",
+              " 'long',\n",
+              " 'time',\n",
+              " 'because',\n",
+              " 'the',\n",
+              " 'angle',\n",
+              " 'from',\n",
+              " 'heel',\n",
+              " 'to',\n",
+              " 'toe',\n",
+              " 'be',\n",
+              " 'a',\n",
+              " 'little',\n",
+              " 'steep',\n",
+              " '',\n",
+              " 'and',\n",
+              " 'the',\n",
+              " 'inside',\n",
+              " 'area',\n",
+              " 'above',\n",
+              " 'the',\n",
+              " 'toes',\n",
+              " 'be',\n",
+              " 'man',\n",
+              " '',\n",
+              " 'make',\n",
+              " 'pleather',\n",
+              " 'and',\n",
+              " 'that',\n",
+              " 'give',\n",
+              " 'me',\n",
+              " 'a',\n",
+              " 'blister',\n",
+              " 'i',\n",
+              " 'do',\n",
+              " 'not',\n",
+              " 'like',\n",
+              " 'that',\n",
+              " '',\n",
+              " 'otherwise',\n",
+              " '',\n",
+              " 'they',\n",
+              " 'be',\n",
+              " 'great',\n",
+              " '']"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 12
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "fFHmDWI9ufi5",
+        "outputId": "34917cd5-147c-4713-9161-b13e9cacda15"
+      },
+      "source": [
+        "preproc2.tokens['91']"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "['these',\n",
+              " 'shoe',\n",
+              " 'be',\n",
+              " 'so',\n",
+              " 'uncomfortable',\n",
+              " 'that',\n",
+              " 'i',\n",
+              " 'have',\n",
+              " 'to',\n",
+              " 'return',\n",
+              " 'them',\n",
+              " 'for',\n",
+              " 'a',\n",
+              " 'refund',\n",
+              " '',\n",
+              " '',\n",
+              " 'the',\n",
+              " 'leather',\n",
+              " '',\n",
+              " 'feel',\n",
+              " 'like',\n",
+              " 'faux',\n",
+              " '',\n",
+              " 'be',\n",
+              " 'very',\n",
+              " 'hard',\n",
+              " 'and',\n",
+              " 'stiff',\n",
+              " '',\n",
+              " '',\n",
+              " 'they',\n",
+              " 'also',\n",
+              " 'be',\n",
+              " 'not',\n",
+              " 'as',\n",
+              " 'cute',\n",
+              " 'as',\n",
+              " 'they',\n",
+              " 'look',\n",
+              " 'in',\n",
+              " 'the',\n",
+              " 'picture',\n",
+              " '',\n",
+              " 'save',\n",
+              " 'your',\n",
+              " 'time',\n",
+              " 'and',\n",
+              " '',\n",
+              " '',\n",
+              " '',\n",
+              " '',\n",
+              " '']"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 45
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "kwEuox0a3J8G",
+        "outputId": "5a319973-5cdb-49d4-9910-c877077b087a"
+      },
+      "source": [
+        "preproc3.tokens['91']"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "['i',\n",
+              " 'buy',\n",
+              " 'them',\n",
+              " 'as',\n",
+              " 'a',\n",
+              " 'gift',\n",
+              " 'for',\n",
+              " 'my',\n",
+              " 'husband',\n",
+              " 'and',\n",
+              " 'he',\n",
+              " 'really',\n",
+              " 'like',\n",
+              " 'them',\n",
+              " '',\n",
+              " 'they',\n",
+              " 'be',\n",
+              " 'a',\n",
+              " 'little',\n",
+              " 'stiff',\n",
+              " 'and',\n",
+              " 'need',\n",
+              " 'to',\n",
+              " 'be',\n",
+              " 'break',\n",
+              " 'in',\n",
+              " 'but',\n",
+              " 'other',\n",
+              " 'than',\n",
+              " 'that',\n",
+              " 'they',\n",
+              " 'be',\n",
+              " 'nice',\n",
+              " '']"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 12
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "KPBBhaOlPnNM",
+        "outputId": "946be812-2f02-4e4c-81f8-1b3494bf1af8"
+      },
+      "source": [
+        "preproc.vocabulary_size #The number of words in the document"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "14255"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 13
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "L8hadz6VuiGE",
+        "outputId": "996f542c-3ced-4a21-8429-119ef45ae9d8"
+      },
+      "source": [
+        "preproc2.vocabulary_size"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "5527"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 46
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "3P9ybNG_3LZy",
+        "outputId": "4500b3c6-b7f1-4e8b-c5ea-588e4e006c2d"
+      },
+      "source": [
+        "preproc3.vocabulary_size"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "11628"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 13
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 419
+        },
+        "id": "m_n93BcjQzUD",
+        "outputId": "308a9f8e-7c5d-4d11-c992-56b399739a53"
+      },
+      "source": [
+        "preproc.tokens_datatable #Shows usage of each lemma in each document"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>doc</th>\n",
+              "      <th>position</th>\n",
+              "      <th>token</th>\n",
+              "      <th>lemma</th>\n",
+              "      <th>pos</th>\n",
+              "      <th>whitespace</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>0</td>\n",
+              "      <td>0</td>\n",
+              "      <td>these</td>\n",
+              "      <td>these</td>\n",
+              "      <td>DET</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>0</td>\n",
+              "      <td>1</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>0</td>\n",
+              "      <td>2</td>\n",
+              "      <td>be</td>\n",
+              "      <td>be</td>\n",
+              "      <td>AUX</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>0</td>\n",
+              "      <td>3</td>\n",
+              "      <td>amazing</td>\n",
+              "      <td>amazing</td>\n",
+              "      <td>ADJ</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>0</td>\n",
+              "      <td>4</td>\n",
+              "      <td></td>\n",
+              "      <td>.</td>\n",
+              "      <td>PUNCT</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>...</th>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>16</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>16</td>\n",
+              "      <td>i</td>\n",
+              "      <td>-PRON-</td>\n",
+              "      <td>PRON</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>17</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>17</td>\n",
+              "      <td>love</td>\n",
+              "      <td>love</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>18</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>18</td>\n",
+              "      <td>the</td>\n",
+              "      <td>the</td>\n",
+              "      <td>DET</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>19</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>19</td>\n",
+              "      <td>color</td>\n",
+              "      <td>color</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>20</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>20</td>\n",
+              "      <td></td>\n",
+              "      <td>.</td>\n",
+              "      <td>PUNCT</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "<p>1042573 rows × 6 columns</p>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "     doc  position    token    lemma    pos  whitespace\n",
+              "0      0         0    these    these    DET        True\n",
+              "1      0         1     boot     boot   NOUN        True\n",
+              "2      0         2       be       be    AUX        True\n",
+              "3      0         3  amazing  amazing    ADJ       False\n",
+              "4      0         4                 .  PUNCT        True\n",
+              "..   ...       ...      ...      ...    ...         ...\n",
+              "16  9999        16        i   -PRON-   PRON        True\n",
+              "17  9999        17     love     love   VERB        True\n",
+              "18  9999        18      the      the    DET        True\n",
+              "19  9999        19    color    color   NOUN       False\n",
+              "20  9999        20                 .  PUNCT       False\n",
+              "\n",
+              "[1042573 rows x 6 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 14
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 419
+        },
+        "id": "XP0Fess8uoYN",
+        "outputId": "42ab2687-ece3-40f1-8c0e-56fe700a40b3"
+      },
+      "source": [
+        "preproc2.tokens_datatable"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>doc</th>\n",
+              "      <th>position</th>\n",
+              "      <th>token</th>\n",
+              "      <th>lemma</th>\n",
+              "      <th>pos</th>\n",
+              "      <th>whitespace</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>0</td>\n",
+              "      <td>0</td>\n",
+              "      <td>i</td>\n",
+              "      <td>-PRON-</td>\n",
+              "      <td>PRON</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>0</td>\n",
+              "      <td>1</td>\n",
+              "      <td>have</td>\n",
+              "      <td>have</td>\n",
+              "      <td>AUX</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>0</td>\n",
+              "      <td>2</td>\n",
+              "      <td>a</td>\n",
+              "      <td>a</td>\n",
+              "      <td>DET</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>0</td>\n",
+              "      <td>3</td>\n",
+              "      <td>similar</td>\n",
+              "      <td>similar</td>\n",
+              "      <td>ADJ</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>0</td>\n",
+              "      <td>4</td>\n",
+              "      <td>version</td>\n",
+              "      <td>version</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>...</th>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>78</th>\n",
+              "      <td>999</td>\n",
+              "      <td>78</td>\n",
+              "      <td>do</td>\n",
+              "      <td>do</td>\n",
+              "      <td>AUX</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>79</th>\n",
+              "      <td>999</td>\n",
+              "      <td>79</td>\n",
+              "      <td>not</td>\n",
+              "      <td>not</td>\n",
+              "      <td>PART</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>80</th>\n",
+              "      <td>999</td>\n",
+              "      <td>80</td>\n",
+              "      <td>waste</td>\n",
+              "      <td>waste</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>81</th>\n",
+              "      <td>999</td>\n",
+              "      <td>81</td>\n",
+              "      <td>your</td>\n",
+              "      <td>-PRON-</td>\n",
+              "      <td>DET</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>82</th>\n",
+              "      <td>999</td>\n",
+              "      <td>82</td>\n",
+              "      <td>time</td>\n",
+              "      <td>time</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "<p>166204 rows × 6 columns</p>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "    doc  position    token    lemma   pos  whitespace\n",
+              "0     0         0        i   -PRON-  PRON        True\n",
+              "1     0         1     have     have   AUX        True\n",
+              "2     0         2        a        a   DET        True\n",
+              "3     0         3  similar  similar   ADJ        True\n",
+              "4     0         4  version  version  NOUN        True\n",
+              "..  ...       ...      ...      ...   ...         ...\n",
+              "78  999        78       do       do   AUX        True\n",
+              "79  999        79      not      not  PART        True\n",
+              "80  999        80    waste    waste  VERB        True\n",
+              "81  999        81     your   -PRON-   DET        True\n",
+              "82  999        82     time     time  NOUN       False\n",
+              "\n",
+              "[166204 rows x 6 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 47
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 419
+        },
+        "id": "-vX6zCU23NFu",
+        "outputId": "569f3ff1-79c8-4ff1-f27a-9614868425fe"
+      },
+      "source": [
+        "preproc3.tokens_datatable"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>doc</th>\n",
+              "      <th>position</th>\n",
+              "      <th>token</th>\n",
+              "      <th>lemma</th>\n",
+              "      <th>pos</th>\n",
+              "      <th>whitespace</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>0</td>\n",
+              "      <td>0</td>\n",
+              "      <td>these</td>\n",
+              "      <td>these</td>\n",
+              "      <td>DET</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>0</td>\n",
+              "      <td>1</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>0</td>\n",
+              "      <td>2</td>\n",
+              "      <td>be</td>\n",
+              "      <td>be</td>\n",
+              "      <td>AUX</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>0</td>\n",
+              "      <td>3</td>\n",
+              "      <td>amazing</td>\n",
+              "      <td>amazing</td>\n",
+              "      <td>ADJ</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>0</td>\n",
+              "      <td>4</td>\n",
+              "      <td></td>\n",
+              "      <td>.</td>\n",
+              "      <td>PUNCT</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>...</th>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>20</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>20</td>\n",
+              "      <td></td>\n",
+              "      <td>.</td>\n",
+              "      <td>PUNCT</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>21</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>21</td>\n",
+              "      <td>overall</td>\n",
+              "      <td>overall</td>\n",
+              "      <td>ADJ</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>22</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>22</td>\n",
+              "      <td>good</td>\n",
+              "      <td>good</td>\n",
+              "      <td>ADJ</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>23</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>23</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>24</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>24</td>\n",
+              "      <td>though</td>\n",
+              "      <td>though</td>\n",
+              "      <td>ADV</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "<p>747613 rows × 6 columns</p>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "     doc  position    token    lemma    pos  whitespace\n",
+              "0      0         0    these    these    DET        True\n",
+              "1      0         1     boot     boot   NOUN        True\n",
+              "2      0         2       be       be    AUX        True\n",
+              "3      0         3  amazing  amazing    ADJ       False\n",
+              "4      0         4                 .  PUNCT        True\n",
+              "..   ...       ...      ...      ...    ...         ...\n",
+              "20  9999        20                 .  PUNCT        True\n",
+              "21  9999        21  overall  overall    ADJ        True\n",
+              "22  9999        22     good     good    ADJ        True\n",
+              "23  9999        23     boot     boot   NOUN        True\n",
+              "24  9999        24   though   though    ADV       False\n",
+              "\n",
+              "[747613 rows x 6 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 14
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "b7e4dWpsQ_t4",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "f2301048-0605-4e4a-f99c-b4d66d52baa3"
+      },
+      "source": [
+        "#For all Steve Madden Reviews\n",
+        "#Another copy of preproc will apply more aggressive cleaning and result in a smaller vocabulary size\n",
+        "\n",
+        "preproc_smaller = preproc.copy()\n",
+        "preproc_smaller.filter_for_pos(['N','ADJ','V']) #Filter for nouns, adjectives, verbs – gets rid of stop words\n",
+        "preproc_smaller.clean_tokens(remove_numbers=True, remove_shorter_than=2) #Numbers might not have meaning in the topics\n",
+        "preproc_smaller.remove_common_tokens(df_threshold=0.8) #Remove very common words - if it appeared in 80% of reviews, it might not be signaling anything special (ex: 'shoe')\n",
+        "preproc_smaller.remove_uncommon_tokens(df_threshold=0.01) #Remove very uncommon words - if it appeared in only 10% of reviews\n",
+        "preproc_smaller.remove_tokens(['*shoe*','*steve*','*madden*','*amazon*','*the*','*be*','*it*','*to*','*and*','*wear*','*want*','*would*','*lot*','*come*'], match_type='glob', ignore_case=True)\n",
+        "#Play around with thresholds for best results\n",
+        "\n",
+        "print(preproc.vocabulary_size)\n",
+        "print(preproc_smaller.vocabulary_size)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "14255\n",
+            "264\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "bJ3lA-Qguz0J",
+        "outputId": "57100e3f-b09a-43c0-ff9b-3b89c487d910"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 2 or less stars\n",
+        "preproc2_smaller = preproc2.copy()\n",
+        "preproc2_smaller.filter_for_pos(['N','ADJ','V'])\n",
+        "preproc2_smaller.clean_tokens(remove_numbers=True, remove_shorter_than=2)\n",
+        "preproc2_smaller.remove_common_tokens(df_threshold=0.8)\n",
+        "preproc2_smaller.remove_uncommon_tokens(df_threshold=0.01)\n",
+        "preproc2_smaller.remove_tokens(['*shoe*','*steve*','*madden*','*amazon*','*the*','*be*','*it*','*to*','*and*','*wear*','*want*','*would*','*lot*','*come*','*start*','*go*','*say*','*could*','*make*','*take*','*think*','*get*'], match_type='glob', ignore_case=True)\n",
+        "\n",
+        "print(preproc2.vocabulary_size)\n",
+        "print(preproc2_smaller.vocabulary_size)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "5527\n",
+            "284\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "4fxIkKfB3PL-",
+        "outputId": "9230bd43-6525-4dac-d875-2d5645d977fd"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 4 or more stars\n",
+        "preproc3_smaller = preproc3.copy()\n",
+        "preproc3_smaller.filter_for_pos(['N','ADJ','V'])\n",
+        "preproc3_smaller.clean_tokens(remove_numbers=True, remove_shorter_than=2)\n",
+        "preproc3_smaller.remove_common_tokens(df_threshold=0.8)\n",
+        "preproc3_smaller.remove_uncommon_tokens(df_threshold=0.01)\n",
+        "preproc3_smaller.remove_tokens(['*shoe*','*steve*','*madden*','*amazon*','*the*','*be*','*it*','*to*','*and*','*wear*','*want*','*would*','*lot*','*come*','*start*','*go*','*say*'], match_type='glob', ignore_case=True)\n",
+        "\n",
+        "print(preproc3.vocabulary_size)\n",
+        "print(preproc3_smaller.vocabulary_size)"
+      ],
+      "execution_count": 6,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "11628\n",
+            "249\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "c0wxcyBhDrfp"
+      },
+      "source": [
+        "# Analyzing preprocessed text"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 419
+        },
+        "id": "K1Wsv5uTSYTw",
+        "outputId": "a77fd61e-ff28-4682-9830-2de5e10aee18"
+      },
+      "source": [
+        "preproc_smaller.tokens_datatable"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>doc</th>\n",
+              "      <th>position</th>\n",
+              "      <th>token</th>\n",
+              "      <th>lemma</th>\n",
+              "      <th>pos</th>\n",
+              "      <th>whitespace</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>0</td>\n",
+              "      <td>0</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>0</td>\n",
+              "      <td>1</td>\n",
+              "      <td>amazing</td>\n",
+              "      <td>amazing</td>\n",
+              "      <td>ADJ</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>0</td>\n",
+              "      <td>2</td>\n",
+              "      <td>get</td>\n",
+              "      <td>get</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>0</td>\n",
+              "      <td>3</td>\n",
+              "      <td>need</td>\n",
+              "      <td>need</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>0</td>\n",
+              "      <td>4</td>\n",
+              "      <td>good</td>\n",
+              "      <td>good</td>\n",
+              "      <td>ADJ</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>...</th>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>1</td>\n",
+              "      <td>comfortable</td>\n",
+              "      <td>comfortable</td>\n",
+              "      <td>ADJ</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>2</td>\n",
+              "      <td>support</td>\n",
+              "      <td>support</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>3</td>\n",
+              "      <td>buy</td>\n",
+              "      <td>buy</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>4</td>\n",
+              "      <td>love</td>\n",
+              "      <td>love</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>5</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>5</td>\n",
+              "      <td>color</td>\n",
+              "      <td>color</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "<p>219106 rows × 6 columns</p>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "     doc  position        token        lemma   pos  whitespace\n",
+              "0      0         0         boot         boot  NOUN        True\n",
+              "1      0         1      amazing      amazing   ADJ       False\n",
+              "2      0         2          get          get  VERB        True\n",
+              "3      0         3         need         need  VERB        True\n",
+              "4      0         4         good         good   ADJ        True\n",
+              "..   ...       ...          ...          ...   ...         ...\n",
+              "1   9999         1  comfortable  comfortable   ADJ        True\n",
+              "2   9999         2      support      support  NOUN        True\n",
+              "3   9999         3          buy          buy  VERB        True\n",
+              "4   9999         4         love         love  VERB        True\n",
+              "5   9999         5        color        color  NOUN       False\n",
+              "\n",
+              "[219106 rows x 6 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 22
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 419
+        },
+        "id": "qDOV5iieu9_Y",
+        "outputId": "bc1570dd-4637-424b-d1aa-d4e3bec4bb4e"
+      },
+      "source": [
+        "preproc2_smaller.tokens_datatable"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>doc</th>\n",
+              "      <th>position</th>\n",
+              "      <th>token</th>\n",
+              "      <th>lemma</th>\n",
+              "      <th>pos</th>\n",
+              "      <th>whitespace</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>0</td>\n",
+              "      <td>0</td>\n",
+              "      <td>similar</td>\n",
+              "      <td>similar</td>\n",
+              "      <td>ADJ</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>0</td>\n",
+              "      <td>1</td>\n",
+              "      <td>year</td>\n",
+              "      <td>year</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>0</td>\n",
+              "      <td>2</td>\n",
+              "      <td>last</td>\n",
+              "      <td>last</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>0</td>\n",
+              "      <td>3</td>\n",
+              "      <td>year</td>\n",
+              "      <td>year</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>0</td>\n",
+              "      <td>4</td>\n",
+              "      <td>buy</td>\n",
+              "      <td>buy</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>...</th>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>11</th>\n",
+              "      <td>999</td>\n",
+              "      <td>11</td>\n",
+              "      <td>bad</td>\n",
+              "      <td>bad</td>\n",
+              "      <td>ADJ</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>12</th>\n",
+              "      <td>999</td>\n",
+              "      <td>12</td>\n",
+              "      <td>terrible</td>\n",
+              "      <td>terrible</td>\n",
+              "      <td>ADJ</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>13</th>\n",
+              "      <td>999</td>\n",
+              "      <td>13</td>\n",
+              "      <td>time</td>\n",
+              "      <td>time</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>14</th>\n",
+              "      <td>999</td>\n",
+              "      <td>14</td>\n",
+              "      <td>waste</td>\n",
+              "      <td>waste</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>15</th>\n",
+              "      <td>999</td>\n",
+              "      <td>15</td>\n",
+              "      <td>time</td>\n",
+              "      <td>time</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "<p>30203 rows × 6 columns</p>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "    doc  position     token     lemma   pos  whitespace\n",
+              "0     0         0   similar   similar   ADJ        True\n",
+              "1     0         1      year      year  NOUN        True\n",
+              "2     0         2      last      last  VERB       False\n",
+              "3     0         3      year      year  NOUN       False\n",
+              "4     0         4       buy       buy  VERB        True\n",
+              "..  ...       ...       ...       ...   ...         ...\n",
+              "11  999        11       bad       bad   ADJ        True\n",
+              "12  999        12  terrible  terrible   ADJ        True\n",
+              "13  999        13      time      time  NOUN       False\n",
+              "14  999        14     waste     waste  VERB        True\n",
+              "15  999        15      time      time  NOUN       False\n",
+              "\n",
+              "[30203 rows x 6 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 57
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 419
+        },
+        "id": "gGpHJrHw3V4a",
+        "outputId": "d1d3e308-a23f-43fa-882a-262e135741b6"
+      },
+      "source": [
+        "preproc3_smaller.tokens_datatable"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>doc</th>\n",
+              "      <th>position</th>\n",
+              "      <th>token</th>\n",
+              "      <th>lemma</th>\n",
+              "      <th>pos</th>\n",
+              "      <th>whitespace</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>0</td>\n",
+              "      <td>0</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>0</td>\n",
+              "      <td>1</td>\n",
+              "      <td>amazing</td>\n",
+              "      <td>amazing</td>\n",
+              "      <td>ADJ</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>0</td>\n",
+              "      <td>2</td>\n",
+              "      <td>get</td>\n",
+              "      <td>get</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>0</td>\n",
+              "      <td>3</td>\n",
+              "      <td>need</td>\n",
+              "      <td>need</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>0</td>\n",
+              "      <td>4</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>...</th>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>2</td>\n",
+              "      <td>snug</td>\n",
+              "      <td>snug</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>3</td>\n",
+              "      <td>ankle</td>\n",
+              "      <td>ankle</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>4</td>\n",
+              "      <td>try</td>\n",
+              "      <td>try</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>5</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>5</td>\n",
+              "      <td>put</td>\n",
+              "      <td>put</td>\n",
+              "      <td>VERB</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>6</th>\n",
+              "      <td>9999</td>\n",
+              "      <td>6</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>boot</td>\n",
+              "      <td>NOUN</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "<p>149557 rows × 6 columns</p>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "     doc  position    token    lemma   pos  whitespace\n",
+              "0      0         0     boot     boot  NOUN        True\n",
+              "1      0         1  amazing  amazing   ADJ       False\n",
+              "2      0         2      get      get  VERB        True\n",
+              "3      0         3     need     need  VERB        True\n",
+              "4      0         4     boot     boot  NOUN        True\n",
+              "..   ...       ...      ...      ...   ...         ...\n",
+              "2   9999         2     snug     snug  NOUN        True\n",
+              "3   9999         3    ankle    ankle  NOUN        True\n",
+              "4   9999         4      try      try  VERB        True\n",
+              "5   9999         5      put      put  VERB        True\n",
+              "6   9999         6     boot     boot  NOUN        True\n",
+              "\n",
+              "[149557 rows x 6 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 23
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "X3pTXoQ6TTbf",
+        "outputId": "f421eb84-b551-4bc7-ed24-b49c35d3f523"
+      },
+      "source": [
+        "print(preproc.tokens['91'])\n",
+        "print(preproc_smaller.tokens['91'])\n",
+        "print(preproc.tokens['1'])\n",
+        "print(preproc_smaller.tokens['1'])\n",
+        "print(preproc.tokens['2000'])\n",
+        "print(preproc_smaller.tokens['2000'])\n",
+        "#Compare both preprocessed versions for words that were removed to see if uninsightful words were removed\n",
+        "#Is every word included meaningful? Do they describe review in specific way?\n",
+        "#tmtoolkit.readthedocs.io/en/latest/preprocessing.html#Part-of-Speech-(POS)-tagging for more information on preprocessing parts of speech"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "['great', 'shoe', '', '3', '', 'heel', '', 'comfortable', 'enough', 'for', 'short', 'term', 'wear', '', 'fabric', 'and', 'color', 'be', 'lovely', '', 'style', 'be', 'nice', 'and', 'the', 'decorative', 'buckle', 'be', 'adorable', '', 'dress', 'up', 'shoe', 'just', 'enough', 'to', 'make', 'it', 'appropriate', 'for', 'fancy', 'wear', '', '', 'i', 'wear', 'them', 'with', 'my', 'wedding', 'dress', '', 'i', 'find', 'them', 'to', 'be', 'a', 'little', 'uncomfortable', 'wear', 'them', 'a', 'long', 'time', 'because', 'the', 'angle', 'from', 'heel', 'to', 'toe', 'be', 'a', 'little', 'steep', '', 'and', 'the', 'inside', 'area', 'above', 'the', 'toes', 'be', 'man', '', 'make', 'pleather', 'and', 'that', 'give', 'me', 'a', 'blister', 'i', 'do', 'not', 'like', 'that', '', 'otherwise', '', 'they', 'be', 'great', '']\n",
+            "['great', 'heel', 'comfortable', 'short', 'color', 'style', 'nice', 'buckle', 'adorable', 'dress', 'make', 'wedding', 'dress', 'find', 'uncomfortable', 'long', 'time', 'heel', 'inside', 'area', 'make', 'give', 'blister', 'like', 'great']\n",
+            "['these', 'sandal', 'be', 'extremely', 'comfortable', '', 'i', 'can', 'wear', 'and', 'walk', 'in', 'these', 'for', 'hour', 'and', 'hour', 'and', 'my', 'foot', 'never', 'hurt', '', 'suprise', 'for', 'such', 'a', 'high', 'heel', '', 'plenty', 'of', 'cushion', 'and', 'very', 'cute', 'too', '', 'i', 'wear', 'them', 'with', 'jean', '', 'capris', '', 'or', 'whatever', 'i', 'want', '', 'dress', 'them', 'up', 'or', 'down', '', 'but', 'overall', 'they', 'be', 'a', 'casual', 'shoe', '', 'the', 'only', 'drawback', 'be', 'that', 'after', 'wear', 'them', 'awhile', 'they', 'get', 'a', 'little', 'hot', 'and', 'sweaty', 'and', 'they', 'make', 'my', 'foot', 'stink', '', 'unfortunately', 'the', 'shoe', 'smell', 'now', 'too', '', 'i', 'guess', 'they', 'just', 'need', 'to', 'be', 'clean', 'regularly', 'and', 'they', 'will', 'be', 'fine', '', 'still', 'my', 'favorite', 'shoe', 'for', 'spring', 'and', 'summer', '']\n",
+            "['comfortable', 'walk', 'hour', 'hour', 'foot', 'hurt', 'high', 'heel', 'cute', 'jean', 'dress', 'casual', 'get', 'hot', 'make', 'foot', 'smell', 'guess', 'need', 'fine', 'summer']\n",
+            "['if', 'you', 'have', 'wide', 'foot', '', 'they', 'cut', 'in', 'to', 'the', 'side', 'of', 'your', 'foot', '', '', 'i', 'get', 'two', 'big', 'blister', '', 'cut', 'on', 'the', 'side', 'of', 'each', 'foot', '', '', 'i', 'be', 'disappoint', '', '', 'other', 'than', 'that', '', 'they', 'feel', 'fine', '']\n",
+            "['wide', 'foot', 'cut', 'side', 'foot', 'get', 'big', 'blister', 'cut', 'side', 'foot', 'disappoint', 'feel', 'fine']\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "Z419hLD7vABt",
+        "outputId": "ef5cbb17-18c2-486d-f407-ea3c0e7955c3"
+      },
+      "source": [
+        "print(preproc2.tokens['91'])\n",
+        "print(preproc2_smaller.tokens['91'])\n",
+        "print(preproc2.tokens['1'])\n",
+        "print(preproc2_smaller.tokens['1'])\n",
+        "print(preproc2.tokens['2000'])\n",
+        "print(preproc2_smaller.tokens['2000'])"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "['these', 'shoe', 'be', 'so', 'uncomfortable', 'that', 'i', 'have', 'to', 'return', 'them', 'for', 'a', 'refund', '', '', 'the', 'leather', '', 'feel', 'like', 'faux', '', 'be', 'very', 'hard', 'and', 'stiff', '', '', 'they', 'also', 'be', 'not', 'as', 'cute', 'as', 'they', 'look', 'in', 'the', 'picture', '', 'save', 'your', 'time', 'and', '', '', '', '', '']\n",
+            "['uncomfortable', 'return', 'refund', 'feel', 'hard', 'stiff', 'cute', 'look', 'picture', 'save', 'time']\n",
+            "['the', 'moment', 'they', 'arrive', 'i', 'put', 'them', 'on', 'and', 'wear', 'them', 'around', 'the', 'house', '', '5', 'minute', 'later', '', 'the', 'heel', 'break', '', 'poor', 'quality', 'of', 'shoe', '', 'but', 'very', 'cute', '', 'i', 'be', 'bummed', 'because', 'they', 'be', 'new', 'and', 'now', 'i', 'have', 'to', 'take', 'them', 'in', 'and', 'pay', 'more', 'to', 'have', 'them', 'repair', '', 'booo', '']\n",
+            "['arrive', 'put', 'house', 'minute', 'heel', 'break', 'poor', 'cute', 'new', 'pay']\n",
+            "['too', 'narrow', 'for', 'my', 'foot', '', 'which', 'cause', 'some', 'discomfort', 'while', 'walk', '', 'the', 'description', 'say', 'leather', '', 'believe', 'it', 'be', 'a', 'manmade', 'material', '']\n",
+            "['narrow', 'foot', 'cause', 'walk', 'description', 'material']\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "u3pDAMcXynAx",
+        "outputId": "8770fb27-86a6-4edf-b74e-d94c420cd653"
+      },
+      "source": [
+        "print(preproc3.tokens['91'])\n",
+        "print(preproc3_smaller.tokens['91'])\n",
+        "print(preproc3.tokens['1'])\n",
+        "print(preproc3_smaller.tokens['1'])\n",
+        "print(preproc3.tokens['2000'])\n",
+        "print(preproc3_smaller.tokens['2000'])"
+      ],
+      "execution_count": 7,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "['i', 'buy', 'them', 'as', 'a', 'gift', 'for', 'my', 'husband', 'and', 'he', 'really', 'like', 'them', '', 'they', 'be', 'a', 'little', 'stiff', 'and', 'need', 'to', 'be', 'break', 'in', 'but', 'other', 'than', 'that', 'they', 'be', 'nice', '']\n",
+            "['buy', 'gift', 'like', 'need', 'break', 'nice']\n",
+            "['these', 'sandal', 'be', 'extremely', 'comfortable', '', 'i', 'can', 'wear', 'and', 'walk', 'in', 'these', 'for', 'hour', 'and', 'hour', 'and', 'my', 'foot', 'never', 'hurt', '', 'suprise', 'for', 'such', 'a', 'high', 'heel', '', 'plenty', 'of', 'cushion', 'and', 'very', 'cute', 'too', '', 'i', 'wear', 'them', 'with', 'jean', '', 'capris', '', 'or', 'whatever', 'i', 'want', '', 'dress', 'them', 'up', 'or', 'down', '', 'but', 'overall', 'they', 'be', 'a', 'casual', 'shoe', '', 'the', 'only', 'drawback', 'be', 'that', 'after', 'wear', 'them', 'awhile', 'they', 'get', 'a', 'little', 'hot', 'and', 'sweaty', 'and', 'they', 'make', 'my', 'foot', 'stink', '', 'unfortunately', 'the', 'shoe', 'smell', 'now', 'too', '', 'i', 'guess', 'they', 'just', 'need', 'to', 'be', 'clean', 'regularly', 'and', 'they', 'will', 'be', 'fine', '', 'still', 'my', 'favorite', 'shoe', 'for', 'spring', 'and', 'summer', '']\n",
+            "['comfortable', 'walk', 'hour', 'hour', 'foot', 'hurt', 'high', 'heel', 'cute', 'jean', 'dress', 'casual', 'get', 'hot', 'make', 'foot', 'smell', 'need', 'fine', 'summer']\n",
+            "['boot', 'be', 'great', 'arrive', 'quickly', '', 'have', 'a', 'strong', 'smell', 'but', 'i', 'think', 'air', 'them', 'out', 'will', 'work', 'fine', '', 'they', 'do', 'run', 'small', 'as', 'the', 'review', 'say', 'order', 'a', 'half', 'size', 'large', 'than', 'i', 'normally', 'wear', 'and', 'they', 'fit', 'perfectly', '']\n",
+            "['boot', 'great', 'arrive', 'smell', 'think', 'work', 'run', 'small', 'review', 'order', 'half', 'size', 'large']\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Ryz_-nMZDwVq"
+      },
+      "source": [
+        "# Creating document labels, vocabulary arrays, and DTMS for the 3 versions"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "6auPYsnvTwLx",
+        "outputId": "3dc06002-dcfc-4e79-ed1f-c4bd94e30183"
+      },
+      "source": [
+        "#For all Steve Madden Reviews\n",
+        "doc_labels = np.array(preproc.doc_labels)\n",
+        "doc_labels[:10]"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array(['0', '1', '10', '100', '1000', '10000', '10001', '10002', '10003',\n",
+              "       '10004'], dtype='<U5')"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 45
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "X9DQt5o0vUMe",
+        "outputId": "57b027ee-f09c-45ec-e96a-7da085129a11"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 2 or less stars\n",
+        "doc2_labels = np.array(preproc2.doc_labels)\n",
+        "doc2_labels[:10]"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array(['0', '1', '10', '100', '1000', '1001', '1002', '1003', '1004',\n",
+              "       '1005'], dtype='<U4')"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 59
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "M1jIs8Q_3YMH",
+        "outputId": "808bc726-948d-46f9-e4f3-5a342d36bcf4"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 4 or more stars\n",
+        "doc3_labels = np.array(preproc3.doc_labels)\n",
+        "doc3_labels[:10]"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array(['0', '1', '10', '100', '1000', '10000', '10001', '10002', '10003',\n",
+              "       '10004'], dtype='<U5')"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 24
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "422dCFEfUJKi"
+      },
+      "source": [
+        "#For all Steve Madden Reviews\n",
+        "\n",
+        "vocab_bg = np.array(preproc.vocabulary) \n",
+        "vocab_sm = np.array(preproc_smaller.vocabulary)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Uo8fFqr5vWVx"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 2 or less stars\n",
+        "vocab2_bg = np.array(preproc2.vocabulary) \n",
+        "vocab2_sm = np.array(preproc2_smaller.vocabulary)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "s3JOE0YO3Z1n"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 4 or more stars\n",
+        "vocab3_bg = np.array(preproc3.vocabulary) \n",
+        "vocab3_sm = np.array(preproc3_smaller.vocabulary)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "yybjpYA4UQeh",
+        "outputId": "2b190e9b-8003-4880-9b30-c68b3fb795cf"
+      },
+      "source": [
+        "#For all Steve Madden Reviews\n",
+        "\n",
+        "dtm_bg = preproc.dtm\n",
+        "dtm_sm = preproc_smaller.dtm\n",
+        "\n",
+        "dtm_bg, dtm_sm"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(<16228x14255 sparse matrix of type '<class 'numpy.int32'>'\n",
+              " \twith 655275 stored elements in Compressed Sparse Row format>,\n",
+              " <16228x264 sparse matrix of type '<class 'numpy.int32'>'\n",
+              " \twith 182324 stored elements in Compressed Sparse Row format>)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 47
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "cieOub1JvZU3",
+        "outputId": "628bd591-c844-4680-bb4c-b31441e339de"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 2 or less stars\n",
+        "dtm2_bg = preproc2.dtm\n",
+        "dtm2_sm = preproc2_smaller.dtm\n",
+        "\n",
+        "dtm2_bg, dtm2_sm"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(<2303x5527 sparse matrix of type '<class 'numpy.int32'>'\n",
+              " \twith 101571 stored elements in Compressed Sparse Row format>,\n",
+              " <2303x284 sparse matrix of type '<class 'numpy.int32'>'\n",
+              " \twith 25290 stored elements in Compressed Sparse Row format>)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 61
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "HDYiR4J-3dIL",
+        "outputId": "db2db76b-6e25-4132-b274-afff52e32272"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 4 or more stars\n",
+        "dtm3_bg = preproc3.dtm\n",
+        "dtm3_sm = preproc3_smaller.dtm\n",
+        "\n",
+        "dtm3_bg, dtm3_sm"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(<12061x11628 sparse matrix of type '<class 'numpy.int32'>'\n",
+              " \twith 474212 stored elements in Compressed Sparse Row format>,\n",
+              " <12061x249 sparse matrix of type '<class 'numpy.int32'>'\n",
+              " \twith 128819 stored elements in Compressed Sparse Row format>)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 29
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "AD7qlEY-D7TI"
+      },
+      "source": [
+        "# Export pickle files to use in the next file (4-Creating-Topic-Models) for topic model creation"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "fTO6cRHNVWCO"
+      },
+      "source": [
+        "#For all Steve Madden Reviews\n",
+        "import pickle\n",
+        "import scipy.sparse\n",
+        "\n",
+        "pickle.dump(doc_labels, open('%s/final_labels.p' % working_directory, 'wb'))\n",
+        "\n",
+        "pickle.dump(dtm_sm, open('%s/final_dtm.p' % working_directory, 'wb'))\n",
+        "pickle.dump(dtm_bg, open('%s/big_dtm.p' % working_directory, 'wb'))\n",
+        "\n",
+        "pickle.dump(vocab_bg, open('%s/big_vocab.p' % working_directory, 'wb'))\n",
+        "pickle.dump(vocab_sm, open('%s/small_vocab.p' % working_directory, 'wb'))\n",
+        "\n",
+        "pickle.dump(corpus, open('%s/corpus.p' % working_directory, 'wb'))\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "scipy.sparse.save_npz('%s/final_dtm.npz' % working_directory, dtm_sm)\n",
+        "scipy.sparse.save_npz('%s/big_dtm.npz' % working_directory, dtm_bg)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "GwaIeFYIvdXc"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 2 or less stars\n",
+        "import pickle\n",
+        "import scipy.sparse\n",
+        "\n",
+        "pickle.dump(doc2_labels, open('%s/2final_labels.p' % working_directory2, 'wb'))\n",
+        "\n",
+        "pickle.dump(dtm2_sm, open('%s/2final_dtm.p' % working_directory2, 'wb'))\n",
+        "pickle.dump(dtm2_bg, open('%s/2big_dtm.p' % working_directory2, 'wb'))\n",
+        "\n",
+        "pickle.dump(vocab2_bg, open('%s/2big_vocab.p' % working_directory2, 'wb'))\n",
+        "pickle.dump(vocab2_sm, open('%s/2small_vocab.p' % working_directory2, 'wb'))\n",
+        "\n",
+        "pickle.dump(corpus2, open('%s/2corpus.p' % working_directory2, 'wb'))\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "scipy.sparse.save_npz('%s/2final_dtm.npz' % working_directory2, dtm2_sm)\n",
+        "scipy.sparse.save_npz('%s/2big_dtm.npz' % working_directory2, dtm2_bg)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "VFS_sc_G3gVH"
+      },
+      "source": [
+        "#For just Steve Madden Reviews with 4 or more stars\n",
+        "import pickle\n",
+        "import scipy.sparse\n",
+        "\n",
+        "pickle.dump(doc3_labels, open('%s/3final_labels.p' % working_directory3, 'wb'))\n",
+        "\n",
+        "pickle.dump(dtm3_sm, open('%s/3final_dtm.p' % working_directory3, 'wb'))\n",
+        "pickle.dump(dtm3_bg, open('%s/3big_dtm.p' % working_directory3, 'wb'))\n",
+        "\n",
+        "pickle.dump(vocab3_bg, open('%s/3big_vocab.p' % working_directory3, 'wb'))\n",
+        "pickle.dump(vocab3_sm, open('%s/3small_vocab.p' % working_directory3, 'wb'))\n",
+        "\n",
+        "pickle.dump(corpus3, open('%s/3corpus.p' % working_directory3, 'wb'))\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "scipy.sparse.save_npz('%s/3final_dtm.npz' % working_directory3, dtm3_sm)\n",
+        "scipy.sparse.save_npz('%s/3big_dtm.npz' % working_directory3, dtm3_bg)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
